@@ -53,6 +53,7 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
       leftovers.push(remaining.slice(0));
     }
   }
+  if (headerLines.length == 0) throw new Error(`No HTTP response received`);
 
   // should really be a ReadableStream
   const bodySize = leftovers.reduce((a, b) => b.byteLength + a, 0);
