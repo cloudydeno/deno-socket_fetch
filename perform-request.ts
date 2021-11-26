@@ -1,5 +1,6 @@
 import {
   iterateReader,
+  writeAll,
 } from "https://deno.land/std@0.115.1/streams/conversion.ts";
 
 export async function performRequest(conn: Deno.Conn, url: URL, request: Request) {
@@ -22,11 +23,11 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
   if (request.destination) reqHeaders.set('sec-fetch-dest', request.destination);
   reqHeaders.set('connection', 'close');
 
-  await conn.write(new TextEncoder().encode(`${request.method} ${url.pathname} HTTP/1.1\r\n`));
+  await writeAll(conn, new TextEncoder().encode(`${request.method} ${url.pathname} HTTP/1.1\r\n`));
   for (const header of reqHeaders) {
-    await conn.write(new TextEncoder().encode(`${header[0]}: ${header[1]}\r\n`));
+    await writeAll(conn, new TextEncoder().encode(`${header[0]}: ${header[1]}\r\n`));
   }
-  await conn.write(new TextEncoder().encode(`\r\n`));
+  await writeAll(conn, new TextEncoder().encode(`\r\n`));
 
   const headerLines = new Array<string>();
   let leftovers = new Array<Uint8Array>();
