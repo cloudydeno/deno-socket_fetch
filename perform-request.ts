@@ -32,33 +32,30 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
   let leftovers = new Array<Uint8Array>();
   let mode: 'headers' | 'body' | 'chunks' = 'headers';
   for await (const b of iterateReader(conn)) {
-    console.log('---', b.length);
-    // if (mode === 'headers') {
-      let remaining = b.subarray(0);
-      while (mode === 'headers' && remaining.includes(10)) {
-        const idx = remaining.indexOf(10);
-        const decoder = new TextDecoder();
-        let text = '';
-        for (const leftover of leftovers) {
-          text += decoder.decode(leftover, {stream: true});
-        }
-        leftovers.length = 0;
-        const line = remaining.subarray(0, idx);
-        text += decoder.decode(line).replace(/\r$/, '');
-        if (text == '') mode = 'body';
-        else headerLines.push(text);
-        remaining = remaining.subarray(idx+1);
+    // console.log('---', b.length);
+    let remaining = b.subarray(0);
+    while (mode === 'headers' && remaining.includes(10)) {
+      const idx = remaining.indexOf(10);
+      const decoder = new TextDecoder();
+      let text = '';
+      for (const leftover of leftovers) {
+        text += decoder.decode(leftover, {stream: true});
       }
-      if (remaining.length > 0) {
-        leftovers.push(remaining.slice(0));
-      }
-    // }
-    // console.log(new TextDecoder().decode(b))
+      leftovers.length = 0;
+      const line = remaining.subarray(0, idx);
+      text += decoder.decode(line).replace(/\r$/, '');
+      if (text == '') mode = 'body';
+      else headerLines.push(text);
+      remaining = remaining.subarray(idx+1);
+    }
+    if (remaining.length > 0) {
+      leftovers.push(remaining.slice(0));
+    }
   }
 
   // should really be a ReadableStream
   const bodySize = leftovers.reduce((a, b) => b.byteLength + a, 0);
-  const body = new Uint8Array(bodySize);
+  let body = new Uint8Array(bodySize);
   let pos = 0;
   for (const leftover of leftovers) {
     body.set(leftover, pos);
@@ -73,7 +70,7 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
   }
 
   if (responseHeaders.get('transfer-encoding')?.includes('chunked')) {
-    throw new Error(`TODO: chunked encoding`);
+    body = dechunk(body);
   }
 
   return new Response(body, {
@@ -81,4 +78,28 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
     status: parseInt(statusLine[1]),
     statusText: statusLine.slice(2).join(' '),
   });
+}
+
+
+function dechunk(raw: Uint8Array) {
+  const chunks = new Array<Uint8Array>();
+  let inputPos = 0;
+  while (inputPos < raw.length) {
+    const nextNl = raw.indexOf(10, inputPos) + 1;
+    if (nextNl <= 0) throw new Error(`BUG`);
+    const headerSlice = raw.subarray(inputPos, nextNl);
+    const header = new TextDecoder().decode(headerSlice).trimEnd().split(';')[0];
+    const chunkSize = parseInt(header, 16);
+    chunks.push(raw.subarray(nextNl, nextNl + chunkSize));
+    inputPos = nextNl + chunkSize;
+  }
+
+  const bodySize = chunks.reduce((a, b) => b.byteLength + a, 0);
+  const final = new Uint8Array(bodySize);
+  let finalPos = 0;
+  for (const chunk of chunks) {
+    final.set(chunk, finalPos);
+    finalPos += chunk.byteLength;
+  }
+  return final;
 }
