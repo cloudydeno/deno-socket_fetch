@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request: {}
+
+jobs:
+
+  check:
+    runs-on: ubuntu-latest
+    name: Check w/ ${{ matrix.deno-version }}
+    strategy:
+      matrix:
+        deno-version:
+        - v1.16
+        - canary
+      fail-fast: false # run each branch to completion
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v2
+
+    - name: Use Deno ${{ matrix.deno-version }}
+      uses: denoland/setup-deno@v1
+      with:
+        deno-version: ${{ matrix.deno-version }}
+
+    - name: Check mod.ts
+      run: time deno cache mod.ts
+
+    - name: Check examples
+      run: time deno cache examples/**/*.ts
+
+    - name: Run dialer examples
+      run: |
+        time ./examples/dialer/https_cloudflare-dns.ts
+        time ./examples/dialer/https_google-dns.ts
+
+    - name: Run fetch examples
+      run: |
+        time ./examples/fetch/http_dagd.ts
+        time ./examples/fetch/https_dagd.ts

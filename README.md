@@ -1,3 +1,5 @@
+![Deno CI](https://github.com/cloudydeno/deno-socket_fetch/workflows/CI/badge.svg?branch=main)
+
 # `/x/socket_fetch`
 
 ## What?
