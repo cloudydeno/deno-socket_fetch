@@ -10,7 +10,7 @@
  *   "Fetching https://1.1.1.1 or any other bare IP address fails with 'invalid dnsname'"
  *   @ https://github.com/denoland/deno/issues/7660
  */
-import { fetchUsing, TlsDialer } from '../../mod.ts';
+import { fetchUsing, TlsDialer } from "../../mod.ts";
 
 // Load the user's KubeConfig file
 import { KubeConfig } from "https://deno.land/x/kubernetes_client@v0.3.0/lib/kubeconfig.ts";
@@ -27,7 +27,7 @@ if (false
 
 // Load the TLS authority for the cluster
 // TODO: This sort of file loading needs to be handled by /x/kubernetes_client, to fix relative paths
-let serverCert = atob(kubeContext.cluster["certificate-authority-data"] ?? '');
+let serverCert = atob(kubeContext.cluster["certificate-authority-data"] ?? "");
 if (!serverCert && kubeContext.cluster["certificate-authority"]) {
   serverCert = await Deno.readTextFile(kubeContext.cluster["certificate-authority"]);
 }
@@ -36,12 +36,12 @@ if (!serverCert && kubeContext.cluster["certificate-authority"]) {
 const headers = new Headers();
 const authHeader = await kubeContext.getAuthHeader();
 if (authHeader) {
-  headers.set('authorization', authHeader);
+  headers.set("authorization", authHeader);
 }
 
 // Configure our connection to the control plane
 const dialer = new TlsDialer({
-  hostname: 'kubernetes.default.svc',
+  hostname: "kubernetes.default.svc",
   caCerts: serverCert ? [serverCert] : [],
 });
 

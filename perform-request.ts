@@ -17,17 +17,21 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
   // if (request.signal) throw new Error(`TODO: Request#signal`);
 
   const reqHeaders = new Headers(request.headers);
-  if (!reqHeaders.get('accept')) reqHeaders.set('accept', '*/*');
-  if (!reqHeaders.get('host')) {
-    if (url.protocol.endsWith('+unix:')) {
-      reqHeaders.set('host', 'uds.localhost');
+  if (!reqHeaders.get("accept")) reqHeaders.set("accept", "*/*");
+  if (!reqHeaders.get("host")) {
+    if (url.protocol.endsWith("+unix:")) {
+      reqHeaders.set("host", "uds.localhost");
     } else {
-      reqHeaders.set('host', url.host);
+      reqHeaders.set("host", url.host);
     }
   }
-  if (!reqHeaders.get('user-agent')) reqHeaders.set('user-agent', `Deno/${Deno.version.deno} socket_fetch/0`);
-  if (request.destination) reqHeaders.set('sec-fetch-dest', request.destination);
-  reqHeaders.set('connection', 'close'); // TODO: connection reuse
+  if (!reqHeaders.get("user-agent")) {
+    reqHeaders.set("user-agent", `Deno/${Deno.version.deno} socket_fetch/0`);
+  }
+  if (request.destination) {
+    reqHeaders.set("sec-fetch-dest", request.destination);
+  }
+  reqHeaders.set("connection", "close"); // TODO: connection reuse
 
   await writeAll(conn, new TextEncoder().encode(`${request.method} ${url.pathname} HTTP/1.1\r\n`));
   for (const header of reqHeaders) {
@@ -37,23 +41,23 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
 
   const headerLines = new Array<string>();
   let leftovers = new Array<Uint8Array>();
-  let mode: 'headers' | 'body' | 'chunks' = 'headers';
+  let mode: "headers" | "body" | "chunks" = "headers";
   for await (const b of iterateReader(conn)) {
     // console.log('---', b.length);
     let remaining = b.subarray(0);
-    while (mode === 'headers' && remaining.includes(10)) {
+    while (mode === "headers" && remaining.includes(10)) {
       const idx = remaining.indexOf(10);
       const decoder = new TextDecoder();
-      let text = '';
+      let text = "";
       for (const leftover of leftovers) {
-        text += decoder.decode(leftover, {stream: true});
+        text += decoder.decode(leftover, { stream: true });
       }
       leftovers.length = 0;
       const line = remaining.subarray(0, idx);
-      text += decoder.decode(line).replace(/\r$/, '');
-      if (text == '') mode = 'body';
+      text += decoder.decode(line).replace(/\r$/, "");
+      if (text == "") mode = "body";
       else headerLines.push(text);
-      remaining = remaining.subarray(idx+1);
+      remaining = remaining.subarray(idx + 1);
     }
     if (remaining.length > 0) {
       leftovers.push(remaining.slice(0));
@@ -70,24 +74,23 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
     pos += leftover.byteLength;
   }
 
-  const statusLine = headerLines.shift()!.split(' ');
+  const statusLine = headerLines.shift()!.split(" ");
   const responseHeaders = new Headers();
   for (const line of headerLines) {
-    const colon = line.indexOf(':');
-    responseHeaders.append(line.slice(0, colon), line.slice(colon+1).trim());
+    const colon = line.indexOf(":");
+    responseHeaders.append(line.slice(0, colon), line.slice(colon + 1).trim());
   }
 
-  if (responseHeaders.get('transfer-encoding')?.includes('chunked')) {
+  if (responseHeaders.get("transfer-encoding")?.includes("chunked")) {
     body = dechunk(body);
   }
 
   return new Response(body, {
     headers: responseHeaders,
     status: parseInt(statusLine[1]),
-    statusText: statusLine.slice(2).join(' '),
+    statusText: statusLine.slice(2).join(" "),
   });
 }
-
 
 function dechunk(raw: Uint8Array) {
   const chunks = new Array<Uint8Array>();

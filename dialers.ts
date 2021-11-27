@@ -10,7 +10,7 @@ export interface Dialer {
  */
 export class TcpDialer implements Dialer {
   async dial(target: URL): Promise<Deno.Conn> {
-    return await dialTcp(target, '80');
+    return await dialTcp(target, "80");
   }
 }
 
@@ -26,7 +26,7 @@ export class TlsDialer implements Dialer {
   ) {}
 
   async dial(target: URL): Promise<Deno.Conn> {
-    const conn = await dialTcp(target, '443');
+    const conn = await dialTcp(target, "443");
     const tlsConn = await Deno.startTls(conn, {
       hostname: target.hostname,
       ...this.opts,
