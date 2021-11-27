@@ -18,10 +18,16 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
 
   const reqHeaders = new Headers(request.headers);
   if (!reqHeaders.get('accept')) reqHeaders.set('accept', '*/*');
-  if (!reqHeaders.get('host')) reqHeaders.set('host', url.host);
+  if (!reqHeaders.get('host')) {
+    if (url.protocol.endsWith('+unix:')) {
+      reqHeaders.set('host', 'uds.localhost');
+    } else {
+      reqHeaders.set('host', url.host);
+    }
+  }
   if (!reqHeaders.get('user-agent')) reqHeaders.set('user-agent', `Deno/${Deno.version.deno} socket_fetch/0`);
   if (request.destination) reqHeaders.set('sec-fetch-dest', request.destination);
-  reqHeaders.set('connection', 'close');
+  reqHeaders.set('connection', 'close'); // TODO: connection reuse
 
   await writeAll(conn, new TextEncoder().encode(`${request.method} ${url.pathname} HTTP/1.1\r\n`));
   for (const header of reqHeaders) {

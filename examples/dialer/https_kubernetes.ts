@@ -1,11 +1,12 @@
 #!/usr/bin/env -S deno run --allow-net
 
-import { TlsDialer, fetchUsing } from '../mod.ts';
+import { fetchUsing, TlsDialer } from '../../mod.ts';
 
+// TODO: use /x/kubernetes_client to load a KubeConfig
 const k8sToken = await Deno.readTextFile('/run/secrets/kubernetes.io/serviceaccount/token');
 const k8sCert = await Deno.readTextFile('/run/secrets/kubernetes.io/serviceaccount/ca.crt');
-const nodeName = `node-1`;
-const nodeIp = `100.101.102.103`;
+const nodeName = Deno.args[0];
+const nodeIp = Deno.args[1];
 
 const dialer = new TlsDialer({
   hostname: nodeName,

@@ -38,6 +38,12 @@ export class TlsDialer implements Dialer {
 /**
  * Satisfies HTTP/HTTPS requests traditionally using the appropriate dialer.
  * If you need to configure a specific dialer, use it directly instead.
+ *
+ * To access UNIX servers,
+ *   URL-encode the socket path into the host part of an `http+unix:` URL.
+ * For example:
+ *   http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.24/containers/json
+ * Note that this URL parsing may break in future versions of Deno.
  */
 export class AutoDialer implements Dialer {
   private readonly tlsDialer = new TlsDialer();
@@ -47,6 +53,13 @@ export class AutoDialer implements Dialer {
     switch (target.protocol) {
       case 'http:': return this.tcpDialer.dial(target);
       case 'https:': return this.tlsDialer.dial(target);
+      case 'http+unix:': {
+        // Approximation of https://github.com/whatwg/url/issues/577#issuecomment-968496984 et al
+        // Browsers handle these URLs differently, but this works as of Deno v1.16
+        if (target.port) throw new Error(`UNIX Domain Socket URLs cannot have a port`);
+        const sockPath = decodeURIComponent(target.hostname);
+        return new UnixDialer(sockPath).dial();
+      };
       default: throw new Error(`Protocol not implemented: ${JSON.stringify(target.protocol)}`);
     }
   }
@@ -60,10 +73,12 @@ export class AutoDialer implements Dialer {
  *
  * NOTE: UNIX domain sockets still require `--unstable` as of Deno v1.16!
  */
- export class UnixDialer implements Dialer {
+export class UnixDialer implements Dialer {
   constructor(
     public readonly socketPath: string,
-  ) {}
+  ) {
+    if (!socketPath) throw new Error(`No UNIX socket path given to UnixDialer`);
+  }
 
   async dial(): Promise<Deno.Conn> {
     return await Deno.connect({

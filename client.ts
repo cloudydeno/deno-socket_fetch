@@ -1,7 +1,7 @@
 import type { Dialer } from "./dialers.ts";
 import { performRequest } from './perform-request.ts';
 
-export class ClientPool {
+export class Client {
   constructor(
     public readonly dialer: Dialer,
   ) {}
@@ -47,6 +47,6 @@ export class ClientPool {
       knownSocks.delete(conn);
     }
     return resp;
-}
+  }
 
 }
