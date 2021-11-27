@@ -17,6 +17,8 @@ export class TcpDialer implements Dialer {
 /**
  * Satisfies HTTPS requests by creating a TLS-encrypted TCP connection.
  * CA and servername options can be set on the constructor.
+ *
+ * Deno's TLS API became stabilized in Deno v1.16.
  */
 export class TlsDialer implements Dialer {
   constructor(
@@ -34,7 +36,7 @@ export class TlsDialer implements Dialer {
 }
 
 /**
- * Satisfies HTTP/HTTPS requests using the appropriate dialer.
+ * Satisfies HTTP/HTTPS requests traditionally using the appropriate dialer.
  * If you need to configure a specific dialer, use it directly instead.
  */
 export class AutoDialer implements Dialer {
@@ -49,6 +51,28 @@ export class AutoDialer implements Dialer {
     }
   }
 }
+
+/**
+ * Satisfies HTTP requests by creating a plaintext UNIX Stream socket.
+ *
+ * A socket location MUST be specified, and will be used for all connections.
+ * Note that the URL given for the request will still be used for the Host header.
+ *
+ * NOTE: UNIX domain sockets still require `--unstable` as of Deno v1.16!
+ */
+ export class UnixDialer implements Dialer {
+  constructor(
+    public readonly socketPath: string,
+  ) {}
+
+  async dial(): Promise<Deno.Conn> {
+    return await Deno.connect({
+      transport: "unix",
+      path: this.socketPath,
+    } as unknown as Deno.ConnectOptions);
+  }
+}
+
 
 function dialTcp(target: URL, defaultPort: string) {
   const givenPort = target.port || defaultPort;

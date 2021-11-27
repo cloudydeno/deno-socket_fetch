@@ -3,6 +3,7 @@ export {
   TcpDialer,
   TlsDialer,
   AutoDialer,
+  UnixDialer,
 } from "./dialers.ts";
 
 export { ClientPool } from "./client-pool.ts";
