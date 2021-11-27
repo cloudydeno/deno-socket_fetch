@@ -33,6 +33,18 @@ and Google Kubernetes Engine HTTPS APIs are **only** externally reachable via IP
 In order to support connecting to these endpoints from various modules,
 I've opted to leverage Deno's TCP primitives directly in a new module.
 
+## When?
+
+Consider this library if you:
+
+* Need to send basic HTTP requests to a daemon that listens on a Unix socket
+  * Docker Engine, `tailscaled`, Podman, `snapd`, etc
+* Need to communicate with an HTTPS endpoint that doesn't have a proper DNS name
+  * Google Kubernetes Engine API, Kubernetes nodes/pods, IoT devices on your LAN
+  * You just need to provide any DNS name that **is** on the server's certificate
+* Need to use a service which has a different DNS name and TLS name
+  * I have no examples of this, and I hope you don't either.
+
 ## Implemented features
 
 * Protocols:
@@ -50,9 +62,10 @@ I've opted to leverage Deno's TCP primitives directly in a new module.
 
 ### Remaining work
 
-* Rewriting with `/std/io/buffer.ts`, added in Deno v1.8.3
+* Rewrite with `/std/io/buffer.ts` (added in Deno v1.8.3)
 * Enable/test connection reuse
-* Error handling
+* Figure out TLS client certificates (missing in `Deno.startTls()`)
+* Implement error handling
 
 ## What about `WebSocket`?
 In addition to the `fetch()` limitations listed above,
