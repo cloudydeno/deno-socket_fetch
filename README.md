@@ -10,7 +10,7 @@ how network connections are established.
 
 Support for:
 * `http:` over TCP
-* `https:` over TCP + TLS
+* `https:` over TCP + TLS (with custom server name)
 * `http+unix:` over stream-type Unix Domain Sockets (UDS)
 
 Note that this module can & should be deprecated
@@ -26,6 +26,7 @@ Numerous advanced network features have been lacking:
   * Workaround: Passing a custom TLS servername to `fetch()`, also missing!
 * ~~HTTPS with TLS client auth: https://github.com/denoland/deno/pull/11721~~
   * Added in Deno v1.14 :)
+* HTTP with weird server behaviors that fail Deno's sanity checks
 
 Unfortunately, HTTP over UNIX domain sockets and HTTPS to IP addresses are both
 really useful in modern/containerized cloud architecture.
@@ -77,7 +78,7 @@ Deno's `WebSocket` API is even further behind:
   * Would enable custom Certificate Authorities
   * Would enable TLS client certificate auth
   * Should enable WebSocket over UNIX domain sockets, once `fetch()` has it
-* `WebSocket` doesn't allow custom HTTP request headers: https://github.com/denoland/deno/issues/11847
+* ~~`WebSocket` doesn't allow custom HTTP request headers: https://github.com/denoland/deno/issues/11847~~
 
 A [similar reimplementation effort already exists](https://deno.land/x/custom_socket/)
 for `WebSocket` and so far it addresses custom request headers.

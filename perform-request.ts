@@ -1,7 +1,5 @@
-import {
-  iterateReader,
-  writeAll,
-} from "https://deno.land/std@0.115.1/streams/conversion.ts";
+import { iterateReader } from "https://deno.land/std@0.175.0/streams/iterate_reader.ts";
+import { writeAll } from "https://deno.land/std@0.175.0/streams/write_all.ts";
 
 export async function performRequest(conn: Deno.Conn, url: URL, request: Request) {
 
@@ -11,7 +9,8 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
   if (request.integrity) throw new Error(`TODO: Request#integrity`);
   if (request.mode) throw new Error(`TODO: Request#mode`);
   if (request.destination) throw new Error(`TODO: Request#destination`);
-  // if (request.redirect) throw new Error(`TODO: Request#redirect`);
+  // TODO: default value is 'follow'
+  // if (request.redirect && request.redirect !== 'manual') throw new Error(`TODO: Request#redirect of ${request.redirect}`);
   if (request.referrer) throw new Error(`TODO: Request#referrer`);
   if (request.referrerPolicy) throw new Error(`TODO: Request#referrerPolicy`);
   // if (request.signal) throw new Error(`TODO: Request#signal`);
@@ -35,6 +34,7 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
 
   await writeAll(conn, new TextEncoder().encode(`${request.method} ${url.pathname} HTTP/1.1\r\n`));
   for (const header of reqHeaders) {
+    // TODO: surely values need to be sanitized
     await writeAll(conn, new TextEncoder().encode(`${header[0]}: ${header[1]}\r\n`));
   }
   await writeAll(conn, new TextEncoder().encode(`\r\n`));
@@ -78,7 +78,11 @@ export async function performRequest(conn: Deno.Conn, url: URL, request: Request
   const responseHeaders = new Headers();
   for (const line of headerLines) {
     const colon = line.indexOf(":");
-    responseHeaders.append(line.slice(0, colon), line.slice(colon + 1).trim());
+    if (colon < 0) {
+      console.warn(`WARN: HTTP header ${JSON.stringify(line)} lacks a colon`);
+    } else {
+      responseHeaders.append(line.slice(0, colon).trim(), line.slice(colon + 1).trim());
+    }
   }
 
   if (responseHeaders.get("transfer-encoding")?.includes("chunked")) {
