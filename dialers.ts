@@ -10,7 +10,9 @@ export interface Dialer {
  */
 export class TcpDialer implements Dialer {
   async dial(target: URL): Promise<Deno.Conn> {
-    return await dialTcp(target, "80");
+    return await Deno.connect({
+      ...resolveHostPort(target, "80"),
+    });
   }
 }
 
@@ -22,16 +24,28 @@ export class TcpDialer implements Dialer {
  */
 export class TlsDialer implements Dialer {
   constructor(
-    public readonly opts?: Deno.StartTlsOptions,
+    public readonly opts?: Deno.StartTlsOptions | Deno.ConnectTlsOptions,
   ) {}
 
   async dial(target: URL): Promise<Deno.Conn> {
-    const conn = await dialTcp(target, "443");
-    const tlsConn = await Deno.startTls(conn, {
-      hostname: target.hostname,
-      ...this.opts,
-    });
-    return tlsConn;
+    // If the options include a separete SNI host, we need to use startTls.
+    if (this.opts?.hostname) {
+      const conn = await Deno.connect({
+        ...resolveHostPort(target, "443"),
+      });
+      const tlsConn = await Deno.startTls(conn, {
+        hostname: target.hostname,
+        ...this.opts,
+      });
+      return tlsConn;
+
+    // Else, we can use connectTls and get mTLS support.
+    } else {
+      return await Deno.connectTls({
+        ...resolveHostPort(target, "443"),
+        ...this.opts,
+      });
+    }
   }
 }
 
@@ -70,8 +84,6 @@ export class AutoDialer implements Dialer {
  *
  * A socket location MUST be specified, and will be used for all connections.
  * Note that the URL given for the request will still be used for the Host header.
- *
- * NOTE: UNIX domain sockets still require `--unstable` as of Deno v1.16!
  */
 export class UnixDialer implements Dialer {
   constructor(
@@ -84,21 +96,20 @@ export class UnixDialer implements Dialer {
     return await Deno.connect({
       transport: "unix",
       path: this.socketPath,
-    } as unknown as Deno.ConnectOptions);
+    });
   }
 }
 
 
-function dialTcp(target: URL, defaultPort: string) {
+function resolveHostPort(target: URL, defaultPort: string) {
   const givenPort = target.port || defaultPort;
   const parsedPort = parseInt(givenPort);
   if (givenPort != parsedPort.toFixed(0)) {
     throw new Error(`Failed to parse an integer out of port ${JSON.stringify(givenPort)}`);
   }
 
-  return Deno.connect({
-    transport: "tcp",
+  return {
     hostname: target.hostname,
     port: parsedPort,
-  });
+  };
 }

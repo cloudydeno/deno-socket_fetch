@@ -22,8 +22,8 @@ Deno's `fetch()` APIs are relatively limited for a server-side runtime.
 Numerous advanced network features have been lacking:
 
 * HTTP over UNIX domain sockets: https://github.com/denoland/deno/issues/8821
-* HTTPS/TLS to IP addresses: https://github.com/denoland/deno/issues/7660
-  * Workaround: Passing a custom TLS servername to `fetch()`, also missing!
+* ~~HTTPS/TLS to IP addresses: https://github.com/denoland/deno/issues/7660~~
+  * Added in Deno v1.34 :)
 * ~~HTTPS with TLS client auth: https://github.com/denoland/deno/pull/11721~~
   * Added in Deno v1.14 :)
 * HTTP with weird server behaviors that fail Deno's sanity checks
@@ -54,11 +54,12 @@ Consider this library if you:
   * [x] `http:`
   * [x] `https:`
   * [x] `http+unix:`
-* Requests:
+* HTTP/1.1 Requests:
   * [x] Headers
   * [ ] Buffered bodies
   * [ ] Streaming bodies
-* Responses:
+  * [ ] Connection keep-alive
+* HTTP/1.1 Responses:
   * [x] Headers
   * [x] Buffered bodies
   * [ ] Streaming bodies
@@ -67,8 +68,9 @@ Consider this library if you:
 
 * Rewrite with `/std/io/buffer.ts` (added in Deno v1.8.3)
 * Enable/test connection reuse
-* Figure out TLS client certificates (missing in `Deno.startTls()`)
 * Implement error handling
+* Offer easy API for HTTP/1.1 upgrades, useful for Kubernetes SPDY
+* Support HTTP/2 when available (using `/x/spdy_transport`) for improved efficiency and accuracy
 
 ## What about `WebSocket`?
 In addition to the `fetch()` limitations listed above,
